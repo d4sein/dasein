@@ -2,6 +2,7 @@ package router
 
 import (
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -9,16 +10,16 @@ import (
 )
 
 const (
-	// ErrCommandNotFound ...
+	// ErrCommandNotFound defines the error when a command is not found
 	ErrCommandNotFound = "command not found"
 )
 
-// Router ...
+// Router defines the structure of the Router
 type Router struct {
 	Commands map[string]Command
 }
 
-// Command ..
+// Command defines the structure of a command
 type Command struct {
 	Name string
 	Run  callback
@@ -26,14 +27,18 @@ type Command struct {
 
 type callback func(s *discordgo.Session, m *discordgo.MessageCreate)
 
+// New returns a new Router
 func New() Router {
 	return Router{
 		Commands: make(map[string]Command),
 	}
 }
 
-// AddCommand ..Adds a new command to the router
+// AddCommand Adds a new command to the router
 func (r Router) AddCommand(c Command) {
+	if _, ok := r.Commands[c.Name]; ok {
+		log.Fatalf("command '%s' has been declared already\n", c.Name)
+	}
 	r.Commands[c.Name] = c
 }
 
@@ -49,9 +54,13 @@ func (r Router) parseCommand(s *discordgo.Session, m *discordgo.MessageCreate) (
 	return Command{}, errors.New(ErrCommandNotFound)
 }
 
-// OnMessageCreate ...
-func (r Router) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+// OnMessageCreateHandler handles the message create event
+func (r Router) OnMessageCreateHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
+		return
+	}
+
+	if m.Message.ChannelID != "781513534470094868" {
 		return
 	}
 
