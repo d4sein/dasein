@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/d4sein/Dasein/tools/router"
+	"github.com/d4sein/Dasein/pkg/router"
 )
 
 var (

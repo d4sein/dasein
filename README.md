@@ -1,2 +1,5 @@
-# dasein
-ai ui ai ui
+# Dasein
+
+# Requirements
+
+- [Go](https://golang.org/)

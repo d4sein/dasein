@@ -9,8 +9,11 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/d4sein/Dasein/config"
-	"github.com/d4sein/Dasein/tools/manager"
+	"github.com/d4sein/Dasein/internal/commands"
+	"github.com/d4sein/Dasein/pkg/router"
 )
+
+var Router = router.New()
 
 func main() {
 	client, err := discordgo.New("Bot " + config.Config.Token)
@@ -23,8 +26,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	manager.InitEvents(client)
-	manager.InitCommands()
+	Router.AddCommand(commands.Ping)
+	client.AddHandler(Router.OnMessageCreate)
 
 	fmt.Println("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
