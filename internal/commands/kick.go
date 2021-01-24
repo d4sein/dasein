@@ -7,8 +7,8 @@ import (
 
 func init() {
 	Router.AddCommand(router.Command{
-		Name:       "ping",
+		Name:       "kick",
 		Run:        func(s *discordgo.Session, m *discordgo.MessageCreate) {},
-		Permission: discordgo.PermissionSendMessages,
+		Permission: discordgo.PermissionKickMembers,
 	})
 }
