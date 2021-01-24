@@ -8,7 +8,7 @@ import (
 func init() {
 	Router.AddCommand(router.Command{
 		Name:       "kick",
-		Run:        func(s *discordgo.Session, m *discordgo.MessageCreate) {},
 		Permission: discordgo.PermissionKickMembers,
+		Run:        func(s *discordgo.Session, m *discordgo.MessageCreate, a router.Arguments) {},
 	})
 }

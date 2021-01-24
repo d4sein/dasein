@@ -27,7 +27,7 @@ func main() {
 
 	err = client.Open()
 	if err != nil {
-		log.Fatal("error opening the Discord connection: ", err)
+		log.Fatal("Error opening the Discord connection: ", err)
 	}
 
 	commands.Router.SetPrefix(os.Getenv("DISCORD_PREFIX"))
