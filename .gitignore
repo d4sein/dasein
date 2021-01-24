@@ -1,5 +1,6 @@
 # config files
 **/config.json
+**/.env
 
 # Binaries for programs and plugins
 *.exe
