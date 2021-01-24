@@ -11,6 +11,8 @@ import (
 const (
 	// ErrCommandNotFound defines the error when a command is not found
 	ErrCommandNotFound = "command not found"
+	// ErrNoPermission defines the error when a user does not have sufficient permission
+	ErrNoPermission = "you can't run this command"
 )
 
 // Router defines the structure of the Router
@@ -21,8 +23,9 @@ type Router struct {
 
 // Command defines the structure of a command
 type Command struct {
-	Name string
-	Run  callback
+	Name       string
+	Run        callback
+	Permission int
 }
 
 type callback func(s *discordgo.Session, m *discordgo.MessageCreate)
@@ -47,11 +50,17 @@ func (r *Router) parseCommand(s *discordgo.Session, m *discordgo.MessageCreate) 
 	ctx := strings.Split(m.Content, " ")
 	name := strings.TrimPrefix(ctx[0], r.prefix)
 
-	if cmd, ok := r.Commands[name]; ok {
-		return cmd, nil
+	cmd, ok := r.Commands[name]
+	if !ok {
+		return cmd, errors.New(ErrCommandNotFound)
 	}
 
-	return cmd, errors.New(ErrCommandNotFound)
+	p, err := s.State.UserChannelPermissions(m.Author.ID, m.ChannelID)
+	if err != nil || (p&cmd.Permission != cmd.Permission) {
+		return cmd, errors.New(ErrNoPermission)
+	}
+
+	return cmd, nil
 }
 
 // OnMessageCreateHandler handles the message create event
@@ -74,6 +83,7 @@ func (r *Router) OnMessageCreateHandler(s *discordgo.Session, m *discordgo.Messa
 	cmd.Run(s, m)
 }
 
+// SetPrefix sets the command prefix
 func (r *Router) SetPrefix(prefix string) {
 	r.prefix = prefix
 }
