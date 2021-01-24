@@ -8,20 +8,29 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/d4sein/Dasein/config"
 	"github.com/d4sein/Dasein/internal/commands"
+	"github.com/joho/godotenv"
 )
 
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("error loading .env file")
+	}
+}
+
 func main() {
-	client, err := discordgo.New("Bot " + config.Config.Token)
+	client, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = client.Open()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("error opening the Discord connection: ", err)
 	}
+
+	commands.Router.SetPrefix(os.Getenv("DISCORD_PREFIX"))
 
 	client.AddHandler(commands.Router.OnMessageCreateHandler)
 

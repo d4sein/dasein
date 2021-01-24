@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/d4sein/Dasein/config"
 )
 
 const (
@@ -17,6 +16,7 @@ const (
 // Router defines the structure of the Router
 type Router struct {
 	Commands map[string]Command
+	prefix   string
 }
 
 // Command defines the structure of a command
@@ -28,35 +28,36 @@ type Command struct {
 type callback func(s *discordgo.Session, m *discordgo.MessageCreate)
 
 // New returns a new Router
-func New() Router {
-	return Router{
+func New() *Router {
+	return &Router{
 		Commands: make(map[string]Command),
+		prefix:   "!",
 	}
 }
 
 // AddCommand Adds a new command to the router
-func (r Router) AddCommand(c Command) {
+func (r *Router) AddCommand(c Command) {
 	if _, ok := r.Commands[c.Name]; ok {
 		log.Fatalf("command '%s' has been declared already\n", c.Name)
 	}
 	r.Commands[c.Name] = c
 }
 
-func (r Router) parseCommand(s *discordgo.Session, m *discordgo.MessageCreate) (Command, error) {
+func (r *Router) parseCommand(s *discordgo.Session, m *discordgo.MessageCreate) (cmd Command, err error) {
 	ctx := strings.Split(m.Content, " ")
-
-	name := strings.TrimPrefix(ctx[0], config.Config.Prefix)
+	name := strings.TrimPrefix(ctx[0], r.prefix)
 
 	if cmd, ok := r.Commands[name]; ok {
 		return cmd, nil
 	}
 
-	return Command{}, errors.New(ErrCommandNotFound)
+	return cmd, errors.New(ErrCommandNotFound)
 }
 
 // OnMessageCreateHandler handles the message create event
-func (r Router) OnMessageCreateHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == s.State.User.ID {
+func (r *Router) OnMessageCreateHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.ID == s.State.User.ID ||
+		!strings.HasPrefix(m.Content, r.prefix) {
 		return
 	}
 
@@ -71,4 +72,8 @@ func (r Router) OnMessageCreateHandler(s *discordgo.Session, m *discordgo.Messag
 	}
 
 	cmd.Run(s, m)
+}
+
+func (r *Router) SetPrefix(prefix string) {
+	r.prefix = prefix
 }
