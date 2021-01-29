@@ -2,23 +2,21 @@ package router
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-)
-
-const (
-	// ErrCommandNotFound defines the error when a command is not found
-	ErrCommandNotFound = "command not found"
-	// ErrNoPermission defines the error when a user does not have sufficient permission
-	ErrNoPermission = "you can't run this command"
+	"github.com/d4sein/Dasein/pkg/executioner"
+	"github.com/d4sein/Dasein/pkg/helper"
+	"github.com/d4sein/Dasein/pkg/typeguard"
 )
 
 // Router defines the structure of the Router
 type Router struct {
-	Commands map[string]Command
-	prefix   string
+	Commands  map[string]Command
+	prefix    string
+	argPrefix string
 }
 
 // Command defines the structure of a command
@@ -30,7 +28,7 @@ type Command struct {
 }
 
 // Arguments ..
-type Arguments map[string][]string
+type Arguments map[string]typeguard.ArgumentConstructor
 
 // Callback ..
 type Callback func(s *discordgo.Session, m *discordgo.MessageCreate, a Arguments)
@@ -38,8 +36,9 @@ type Callback func(s *discordgo.Session, m *discordgo.MessageCreate, a Arguments
 // New returns a new Router
 func New() *Router {
 	return &Router{
-		Commands: make(map[string]Command),
-		prefix:   ";",
+		Commands:  map[string]Command{},
+		prefix:    ";",
+		argPrefix: "--",
 	}
 }
 
@@ -56,33 +55,42 @@ func (r *Router) AddCommand(c Command) {
 	r.Commands[c.Name] = c
 }
 
-func (r *Router) parseCommand(s *discordgo.Session, m *discordgo.MessageCreate) (cmd Command, err error) {
-	argPrefix := "--"
-
+func (r *Router) parseCommand(
+	s *discordgo.Session,
+	m *discordgo.MessageCreate) (cmd Command, err error) {
 	ctx := strings.Split(m.Content, " ")
-
-	name := strings.TrimPrefix(ctx[0], r.prefix)
-
-	ctx = reverse(ctx[1:])
+	name, ctx := strings.TrimPrefix(ctx[0], r.prefix), ctx[1:]
 
 	cmd, ok := r.Commands[name]
 	if !ok {
-		return cmd, errors.New(ErrCommandNotFound)
+		return cmd, errors.New(executioner.ErrCommandNotFound)
 	}
 
-	// p, err := s.State.UserChannelPermissions(m.Author.ID, m.ChannelID)
-	// if err != nil || (p&cmd.Permission != cmd.Permission) {
-	// 	return cmd, errors.New(ErrNoPermission)
-	// }
-
+	// Resets command args
 	tempArgs := []string{}
 
-	for _, s := range ctx {
-		if strings.HasPrefix(s, argPrefix) {
-			cmd.Args[strings.TrimPrefix(s, argPrefix)] = tempArgs
+	for _, s := range helper.Reverse(ctx) {
+		if strings.HasPrefix(s, r.argPrefix) {
+			argName := strings.TrimPrefix(s, r.argPrefix)
 
-			tempArgs = []string{}
-			continue
+			if arg, ok := cmd.Args[argName]; ok {
+				switch arg.To {
+				case typeguard.WantInt():
+					if len(tempArgs) > 1 {
+						return cmd, fmt.Errorf(executioner.ErrTooManyValues, argName)
+					}
+
+					arg.Output.Value = tempArgs[0]
+
+				case typeguard.WantArrInt():
+					arg.Output.Value = strings.Join(tempArgs, ",")
+
+				default:
+					//
+				}
+
+				cmd.Args[argName] = arg
+			}
 		}
 
 		tempArgs = append(tempArgs, s)
@@ -99,7 +107,8 @@ func (r *Router) OnMessageCreateHandler(s *discordgo.Session, m *discordgo.Messa
 	}
 
 	if m.Message.ChannelID != "781513534470094868" &&
-		m.Message.ChannelID != "619389904866115606" {
+		m.Message.ChannelID != "619389904866115606" &&
+		m.Message.ChannelID != "803371698916687902" {
 		return
 	}
 
@@ -112,10 +121,7 @@ func (r *Router) OnMessageCreateHandler(s *discordgo.Session, m *discordgo.Messa
 	cmd.Run(s, m, cmd.Args)
 }
 
-func reverse(s []string) []string {
-	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-		s[i], s[j] = s[j], s[i]
-	}
-
-	return s
-}
+// p, err := s.State.UserChannelPermissions(m.Author.ID, m.ChannelID)
+// if err != nil || (p&cmd.Permission != cmd.Permission) {
+// 	return cmd, errors.New(ErrNoPermission)
+// }
