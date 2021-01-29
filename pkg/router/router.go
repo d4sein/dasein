@@ -85,8 +85,15 @@ func (r *Router) parseCommand(
 				case typeguard.WantArrInt():
 					arg.Output.Value = strings.Join(tempArgs, ",")
 
+				case typeguard.WantArrString():
+					arg.Output.Value = strings.Join(tempArgs, ",")
+
 				default:
-					//
+					if len(tempArgs) > 1 {
+						return cmd, fmt.Errorf(executioner.ErrTooManyValues, argName)
+					}
+
+					arg.Output.Value = tempArgs[0]
 				}
 
 				cmd.Args[argName] = arg
